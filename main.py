@@ -33,7 +33,7 @@ def deploycluster(name: str = "", basedomain: str = "", version: str = tools.fet
     elif size == "compact":
         print("Path to create a compact openshift cluster (3 master nodes).")
     else: 
-        logging.quitMessage("Size: {} - is not supported yet".format(size))
+        logging.quitMessage("size: {} - is not supported yet".format(size))
     
     print("Command to deploy cluster")
 
