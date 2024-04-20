@@ -42,6 +42,9 @@ def validateName(name):
 
 def validateVersion(version):
     # Regular expression pattern to match the version criteria
-    pattern = r'^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+    pattern = r'^[0-9]+\.[0-9]+$'
     # return Matching the name with the pattern
     return re.match(pattern, version)
+
+def validateSize(size):
+    return size == "sno" or size == "compact"

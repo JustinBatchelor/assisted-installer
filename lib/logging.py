@@ -7,3 +7,4 @@ def errorMessage(msg):
 def quitMessage(msg):
     print("ERR: {}".format(msg))
     quit()
+

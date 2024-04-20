@@ -23,7 +23,6 @@ class hashicorp:
     # class's memeber `environmentVariables` dict
     def __populateEnvironmentVariables(self):
         for key in ENVIRONMENT_VARIABLE_KEYS:
-            print(os.environ.get("{}".format(key)))
             if os.environ.get("{}".format(key)):
                 self.environmentVariables[key] = os.environ.get("{}".format(key))
             else:

@@ -6,7 +6,7 @@ Python repository to install a bare metal openshift cluster to a proxmox virtual
 
 ### Deploy Cluster
 
-    $ ./main.py deploycluster --name=<cluster-name> --version=<cluster-version>
+    $ ./main.py deploycluster --name=<cluster-name> --version=<cluster-version> --basedomain=<domain> --size=<size>
 
 ## Dependancies
 
@@ -27,6 +27,7 @@ Python repository to install a bare metal openshift cluster to a proxmox virtual
 - `typer==0.12.3`
 - `typing_extensions==4.11.0`
 - `urllib3==2.2.1`
+- `jmespath==1.0.1`
 
 **Environment Variables** 
 
