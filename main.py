@@ -27,6 +27,13 @@ def deploycluster(name: str = "", basedomain: str = "", version: str = tools.fet
         logging.quitMessage("size: {} - is not a valid size. Please choose from one of the following options [sno, compact]. The code currently defaults to installing a single node openshift cluster".format(size))
     
     # If we made it here then we should be in the clear for begining the process of installing a cluster.
+    # currently we only support two sizes
+    if size == "sno":
+        print("Path to create a single node openshift cluster")
+    elif size == "compact":
+        print("Path to create a compact openshift cluster (3 master nodes).")
+    else: 
+        logging.quitMessage("Size: {} - is not supported yet".format(size))
     
     print("Command to deploy cluster")
 
