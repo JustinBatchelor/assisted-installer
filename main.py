@@ -54,6 +54,11 @@ def removecluster(name: str = ""):
     # create assisted installer instance
     installer = assistedinstaller.assistedinstaller(token, pullSecret)
 
+    ## First we need to shut down any vms related to the cluster
+
+    ## Second we need to delete the vms
+
+    ## Third we need can delete the cluster via the API
     installer.deleteCluster(name)
 
 
