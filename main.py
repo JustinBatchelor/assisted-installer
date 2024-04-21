@@ -62,23 +62,14 @@ def removecluster(name: str = ""):
     # find all vms backing the cluster in proxmox
     deleteVMs = pve.getVMsWithTag(name)
     # loop through each vm to delete
+    logging.logMessage(f"Found {len(deleteVMs)} VM's to delete from proxmox")
     for vm in deleteVMs:
         # delete vm
         pve.deleteVM(vm)
 
-    ## Third we need can delete the cluster via the API
+    # finally, delete the cluster via the API
     installer.deleteCluster(name)
 
-
-@app.command()
-def testproxmoxer():
-    hcp = hashicorp.hashicorp()
-    password = hcp.getAppSecret("proxmox", "password")['secret']['version']['value']
-    pve = proxmox.proxmoxcluster(password)
-    print(pve.getVMsWithTag("test-ocp"))
-    vms = pve.getVMsWithTag("test-ocp")
-    for vm in vms:
-        print(pve.deleteVM(vm))
 
 if __name__ == '__main__':
     app()

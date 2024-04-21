@@ -20,7 +20,7 @@ class proxmoxcluster:
         self.proxmox = proxmoxer.ProxmoxAPI(url, user=self.username, password=self.password, verify_ssl=False)
         return self.proxmox
         
-    def isAuthenticate(self):
+    def isAuthenticated(self):
         try:
             # Attempt to get Proxmox version or other harmless data
             version = self.proxmox.version.get()
@@ -35,7 +35,7 @@ class proxmoxcluster:
             logging.quitMessage("Error during authentication check: {}".format(e))
 
     def getVMs(self):
-        if self.isAuthenticate():
+        if self.isAuthenticated():
             # return api response
             return self.proxmox.nodes(self.node).qemu.get()
         else:
@@ -44,7 +44,7 @@ class proxmoxcluster:
             self.getVMs()
 
     def getVMWithID(self, id):
-        if self.isAuthenticate():
+        if self.isAuthenticated():
             return self.proxmox.nodes(self.node).qemu(id)
         else:
             self.authenticate()
@@ -95,7 +95,7 @@ class proxmoxcluster:
                 # Send shutdown command to the VM
                 logging.logMessage(f"Initiating shutdown for VM ID {vm['vmid']}")
                 # send api request to stop
-                if self.isAuthenticate():
+                if self.isAuthenticated():
                     self.proxmox.nodes(self.node).qemu(vm['vmid']).status.stop.post()
                 else:
                     self.authenticate()
