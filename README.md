@@ -6,7 +6,7 @@ An application written in python to configure, deploy, and manage Red Hat OpenSh
 
 | Size | Control-Nodes | CPU (per-node) | Memory (per-node) | Storage (per-node) |
 | ---  | ------------- | --- | ------ | ------- |
-| sno (single node openshift) | 1 | 8vcpu | 32000 | 200GiB | 
+| sno (single node openshift) | 1 | 8 vcpu | 32000GiB | 200GiB | 
 | compact | 3 | 4 | 16GiB | 200GiB|
 
 The application utilizes the Hashicorp Cloud Platform - Vault Secrets API, as a secure way to interface with sensitive information such as admin tokens, passwords, and secrets that will be needed for authentication across the various services this project uses.
@@ -42,6 +42,14 @@ The application utilizes the Hashicorp Cloud Platform - Vault Secrets API, as a 
     type: str
     description: base domain to build the openshift routes 
     example: "example.com"
+
+  name: size
+    required: false
+    default: "sno"
+    type: str
+    description: the cluster size that you want to deploy
+    example: "compact"
+    choices: ["sno", "compact"]
 ```
 
 
@@ -64,7 +72,13 @@ The application utilizes the Hashicorp Cloud Platform - Vault Secrets API, as a 
 
 ## Dependancies
 
+**Python Version**
+
 - `python3.12.2+`
+
+**Modules**
+
+- refer to `requirements.txt`
 
 
 **Environment Variables** 
@@ -77,10 +91,13 @@ The application utilizes the Hashicorp Cloud Platform - Vault Secrets API, as a 
 
 - `projectID`: The HashiCorp Cloud Platform project ID where the Vault Secrets application is located
 
-- `proxmoxIP`: The local IP of your proxmox virtual environment
+- `proxmoxServiceIP`: The local IP of your proxmox virtual environment
 
-- `proxmoxUser`: The username@pam used for authentication against the pve API
+- `proxmoxServicePort`: The port that your proxmox virtual environment is running on
 
+- `proxmoxUser`: The username used for authentication against the pve API
+
+- `proxmoxNode`: The name of the proxmox node to connect to
 
 
 **Vault Secrets**
@@ -103,10 +120,6 @@ This code is opinionated, and assumes that you are using the Hashicorp Cloud Pla
 In order for the code to function properly, we will need to set a few environment variables to provide authentication to the HCP API such that we can retrieve the secret values for other sensitive information.
 
 You can find the `organizationID` and `projectID` in their respective settings tab in HCP. However, in order to get the clientID and clientSecret, you will need to navigate to the `Projects` -> `<Project Name>` -> `Access Control (IAM)` -> `Service Principals` tab within your organization. Create a service principal with the `Contributer Role` and generate keys. This will populate a `clientID` and `clientSecret` that the code will use to authenticate to the HCP API
-
-
-
-
 
 
 

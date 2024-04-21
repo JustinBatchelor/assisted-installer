@@ -1,12 +1,15 @@
 ## Code to disable creating pycache dir after running
-import sys
+import sys, typer, requests
 sys.dont_write_bytecode = True
 ###################################################
 
 
-from lib import hashicorp, tools, logging, assistedinstaller
+from lib import hashicorp, tools, logging, assistedinstaller, proxmox
+from urllib3.exceptions import InsecureRequestWarning
 
-import typer
+
+requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+
 
 
 app = typer.Typer()
@@ -50,17 +53,32 @@ def removecluster(name: str = ""):
     token = hcp.getAppSecret("assisted-installer", "token")['secret']['version']['value']
     # get assisted installer pull_secret value from hashicorp
     pullSecret = hcp.getAppSecret("assisted-installer", "pull_secret")['secret']['version']['value']
-    
+    # get the proxmox password from hashicorp
+    password = hcp.getAppSecret("proxmox", "password")['secret']['version']['value']
     # create assisted installer instance
     installer = assistedinstaller.assistedinstaller(token, pullSecret)
-
-    ## First we need to shut down any vms related to the cluster
-
-    ## Second we need to delete the vms
+    # create proxmox cluster instance
+    pve = proxmox.proxmoxcluster(password)
+    # find all vms backing the cluster in proxmox
+    deleteVMs = pve.getVMsWithTag(name)
+    # loop through each vm to delete
+    for vm in deleteVMs:
+        # delete vm
+        pve.deleteVM(vm)
 
     ## Third we need can delete the cluster via the API
     installer.deleteCluster(name)
 
+
+@app.command()
+def testproxmoxer():
+    hcp = hashicorp.hashicorp()
+    password = hcp.getAppSecret("proxmox", "password")['secret']['version']['value']
+    pve = proxmox.proxmoxcluster(password)
+    print(pve.getVMsWithTag("test-ocp"))
+    vms = pve.getVMsWithTag("test-ocp")
+    for vm in vms:
+        print(pve.deleteVM(vm))
 
 if __name__ == '__main__':
     app()

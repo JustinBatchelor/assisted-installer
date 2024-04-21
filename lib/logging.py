@@ -1,4 +1,6 @@
 
+def logMessage(msg):
+    print("LOG: {}".format(msg))
 
 def errorMessage(msg):
     print("ERR: {}".format(msg))

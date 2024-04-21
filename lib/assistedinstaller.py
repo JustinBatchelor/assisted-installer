@@ -66,7 +66,6 @@ class assistedinstaller:
                 "Content-Type": "application/json"
             }
             response = requests.delete(url, headers=headers)
-            print(response.text)
             if response.status_code != 204:
                 logging.quitMessage("Recieved an error from API when trying to delete the cluster: {}".format(response.text))
             return True
