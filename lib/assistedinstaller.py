@@ -54,6 +54,7 @@ class assistedinstaller:
 
         # Execute and return the query
         return jmespath.search(query, json.loads(response.text))
+       
 
 
     def deleteCluster(self, name):
@@ -68,7 +69,73 @@ class assistedinstaller:
             response = requests.delete(url, headers=headers)
             if response.status_code != 204:
                 logging.quitMessage("Recieved an error from API when trying to delete the cluster: {}".format(response.text))
+            logging.logMessage(f"Successfully removed cluster '{name}' from the assisted installer")
+            self.deleteInfrastructureEnvironment()
             return True
         else:
             logging.errorMessage("Assisted Installer API did not return a match for the cluster name: {}".format(name))
             return False
+    
+    def deleteInfrastructureEnvironment(self):
+        url = f"{self.apiBase}api/assisted-install/v2/infra-envs"
+        headers = {
+            "Authorization": "Bearer {}".format(self.getAccessToken()),
+            "Content-Type": "application/json"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            for infra in json.loads(response.text):
+                deleteurl = f"{url}/{infra['id']}"
+                logging.logMessage(f"Deleting infra id: {infra['id']}")
+                requests.delete(deleteurl, headers=headers)
+        
+    def registerInfrastructureEnvironment(self, cluster):
+        url = f"{self.apiBase}api/assisted-install/v2/infra-envs"
+        headers = {
+            "Authorization": "Bearer {}".format(self.getAccessToken()),
+            "Content-Type": "application/json"
+        }
+        data = {
+            "name": f"{cluster['name']}_infra-env",
+            "cluster_id": f"{cluster['id']}",
+            "cpu_architecture": "x86_64",
+            "pull_secret": self.pullSecret,
+        }
+        response = requests.post(url, headers=headers, json=data)
+        logging.logMessage(f"{response.text}")
+            
+
+    def registerSNOCluster(self, name, version, domain):
+        ### VALIDATE IF CLUSTER ALREADY EXISTS
+        cluster = self.getCluster(name)
+        if cluster:
+            logging.quitMessage(f"Can not register a new cluster because one already exists with this name")
+        
+        url = f"{self.apiBase}api/assisted-install/v2/clusters"
+        headers = {
+            "Authorization": "Bearer {}".format(self.getAccessToken()),
+            "Content-Type": "application/json"
+        }
+
+        data = {
+            "name": f"{name}",
+            "openshift_version": f"{version}",
+            "high_availability_mode": "None",
+            "base_dns_domain": f"{domain}",
+            "pull_secret": self.pullSecret,
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+
+        if response.status_code == 201:
+            logging.logMessage(f"Successfully registered cluster: {name}")
+            logging.logMessage(f"{response.text}")
+        else: 
+            logging.quitMessage("The API was unable to register the new cluster... Please review the request and try again.")
+
+        infrastructureEnvironment = self.registerInfrastructureEnvironment(json.loads(response.text))
+        
+
+    # def deploySNOCluster(self, name, version, domain):
+    #     cluster = self.registerSNOCluster(name, version, domain)
+

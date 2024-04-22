@@ -29,16 +29,28 @@ def deploycluster(name: str = "", basedomain: str = "", version: str = tools.fet
     if not tools.validateSize(size):
         logging.quitMessage("size: {} - is not a valid size. Please choose from one of the following options [sno, compact]. The code currently defaults to installing a single node openshift cluster".format(size))
     
+    # create hcp instance
+    hcp = hashicorp.hashicorp()
+    # get assisted installer token value from hashicorp
+    token = hcp.getAppSecret("assisted-installer", "token")['secret']['version']['value']
+    # get assisted installer pull_secret value from hashicorp
+    pullSecret = hcp.getAppSecret("assisted-installer", "pull_secret")['secret']['version']['value']
+    # get the proxmox password from hashicorp
+    password = hcp.getAppSecret("proxmox", "password")['secret']['version']['value']
+    # create assisted installer instance
+    installer = assistedinstaller.assistedinstaller(token, pullSecret)
+    # create proxmox cluster instance
+    pve = proxmox.proxmoxcluster(password)
+
     # If we made it here then we should be in the clear for begining the process of installing a cluster.
     # currently we only support two sizes
     if size == "sno":
-        print("Path to create a single node openshift cluster")
+        preflight = installer.registerSNOCluster(name, version, basedomain)
+        
     elif size == "compact":
         print("Path to create a compact openshift cluster (3 master nodes).")
     else: 
         logging.quitMessage("size: {} - is not supported yet".format(size))
-    
-    print("Command to deploy cluster")
 
 
 @app.command()
@@ -48,7 +60,6 @@ def removecluster(name: str = ""):
 
     # create hcp instance
     hcp = hashicorp.hashicorp()
-    
     # get assisted installer token value from hashicorp
     token = hcp.getAppSecret("assisted-installer", "token")['secret']['version']['value']
     # get assisted installer pull_secret value from hashicorp

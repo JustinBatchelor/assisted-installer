@@ -1,7 +1,5 @@
-import proxmoxer
-import os
-import jmespath
-import time
+import proxmoxer, os, jmespath, time
+
 from lib import logging
 
 
