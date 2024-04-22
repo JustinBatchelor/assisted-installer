@@ -60,7 +60,6 @@ class assistedinstaller:
     def deleteCluster(self, name):
         cluster = self.getCluster(name)
         if cluster:
-            # print(cluster)
             url = self.apiBase + "api/assisted-install/v2/clusters/{}".format(cluster[0]['id'])
             headers = {
                 "Authorization": "Bearer {}".format(self.getAccessToken()),
@@ -70,14 +69,14 @@ class assistedinstaller:
             if response.status_code != 204:
                 logging.quitMessage("Recieved an error from API when trying to delete the cluster: {}".format(response.text))
             logging.logMessage(f"Successfully removed cluster '{name}' from the assisted installer")
-            self.deleteInfrastructureEnvironment()
+            self.deleteInfrastructureEnvironment(cluster[0])
             return True
         else:
             logging.errorMessage("Assisted Installer API did not return a match for the cluster name: {}".format(name))
             return False
     
-    def deleteInfrastructureEnvironment(self):
-        url = f"{self.apiBase}api/assisted-install/v2/infra-envs"
+    def deleteInfrastructureEnvironment(self, cluster):
+        url = f"{self.apiBase}api/assisted-install/v2/infra-envs?cluster_id={cluster['id']}"
         headers = {
             "Authorization": "Bearer {}".format(self.getAccessToken()),
             "Content-Type": "application/json"
