@@ -101,8 +101,15 @@ class assistedinstaller:
             "pull_secret": self.pullSecret,
         }
         response = requests.post(url, headers=headers, json=data)
-        logging.logMessage(f"{response.text}")
-            
+
+        if response.status_code == 201:
+            logging.logMessage(f"Successfully registered infrastructure environment:")
+            logging.prettyPrint(json.loads(response.text))
+            return response.text
+        else:
+            logging.quitMessage("There was an error when registering the clusters infrastructure environment")
+        
+
 
     def registerSNOCluster(self, name, version, domain):
         ### VALIDATE IF CLUSTER ALREADY EXISTS
@@ -128,11 +135,14 @@ class assistedinstaller:
 
         if response.status_code == 201:
             logging.logMessage(f"Successfully registered cluster: {name}")
-            logging.logMessage(f"{response.text}")
+            logging.prettyPrint(json.loads(response.text))
         else: 
             logging.quitMessage("The API was unable to register the new cluster... Please review the request and try again.")
 
         infrastructureEnvironment = self.registerInfrastructureEnvironment(json.loads(response.text))
+
+        return [self.getCluster(name)[0], json.loads(infrastructureEnvironment)]
+
         
 
     # def deploySNOCluster(self, name, version, domain):

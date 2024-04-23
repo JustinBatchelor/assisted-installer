@@ -1,3 +1,9 @@
+import pprint
+
+
+def prettyPrint(json):
+    logMessage(pprint.pprint(json))
+
 
 def logMessage(msg):
     print("LOG: {}".format(msg))

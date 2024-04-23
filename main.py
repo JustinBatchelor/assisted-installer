@@ -45,7 +45,16 @@ def deploycluster(name: str = "", basedomain: str = "", version: str = tools.fet
     # If we made it here then we should be in the clear for begining the process of installing a cluster.
     # currently we only support two sizes
     if size == "sno":
-        preflight = installer.registerSNOCluster(name, version, basedomain)
+        # clusterInfraBundle - an array containing the cluster object and infrastructure environment needed 
+        #                      created after registering a new cluster with the assisted installer api
+        #  return array[cluster, infraenv]
+        clusterInfraBundle = installer.registerSNOCluster(name, version, basedomain)
+
+
+        logging.logMessage(pve.uploadISO(clusterInfraBundle[1]['download_url'], clusterInfraBundle[0]['name']))
+
+
+        
         
     elif size == "compact":
         print("Path to create a compact openshift cluster (3 master nodes).")

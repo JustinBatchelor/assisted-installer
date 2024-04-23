@@ -1,3 +1,4 @@
+import tempfile
 import requests
 import re
 import validators
@@ -48,3 +49,28 @@ def validateVersion(version):
 
 def validateSize(size):
     return size == "sno" or size == "compact"
+
+
+def downloadISO(infraENV):
+    url = infraENV['download_url']
+    try:
+        # Create a temporary file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.iso')
+
+        # Download the ISO file
+        response = requests.get(url, stream=True)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+
+        with open(temp_file.name, 'wb') as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+
+        print(f"Download completed. File saved to temporary location: {temp_file.name}")
+        return temp_file.name
+    
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred while downloading the file: {e}")
+        return None
+    finally:
+        # Close the temporary file
+        temp_file.close()

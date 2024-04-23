@@ -1,4 +1,4 @@
-import proxmoxer, os, jmespath, time
+import proxmoxer, os, jmespath, time, requests, paramiko
 
 from lib import logging
 
@@ -12,6 +12,38 @@ class proxmoxcluster:
         self.node = os.environ.get("proxmoxNode")
         self.password = password
         self.proxmox = self.authenticate()
+
+    def sshCommand(self, ip, port, username, password, command):
+        # Initialize SSH client
+        ssh = paramiko.SSHClient()
+        
+        # Automatically add untrusted hosts (make sure okay for security policy in your environment)
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        
+        try:
+            # Connect to the host
+            ssh.connect(ip, port=port, username=username, password=password)
+            
+            # Execute the command
+            stdin, stdout, stderr = ssh.exec_command(command)
+            
+            # Read output from the command
+            output = stdout.read()
+            
+            # Optionally, handle errors if any from stderr
+            error = stderr.read()
+            if error:
+                logging.quitMessage(f"Error: {error.decode()}", )
+
+            return output
+            
+        except Exception as e:
+            print("Connection Failed")
+            print(e)
+        finally:
+            # Close the connection
+            ssh.close()
+
 
     def authenticate(self):
         url = "{}/api2/json".format(self.serviceFQDN)
@@ -40,6 +72,12 @@ class proxmoxcluster:
             logging.errorMessage("API call failed due to authentication")
             self.authenticate()
             self.getVMs()
+
+    def uploadISO(self, url, name):
+        command = f"pvesh create /nodes/{self.node}/storage/local/download-url --content=iso --filename={name}.iso --url={url}"
+        logging.logMessage(command)
+        return self.sshCommand(self.serviceIP, 22, "root", self.password, command)
+
 
     def getVMWithID(self, id):
         if self.isAuthenticated():
