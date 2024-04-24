@@ -1,4 +1,4 @@
-import proxmoxer, os, jmespath, time, requests, paramiko, json
+import proxmoxer, os, jmespath, time, paramiko
 
 from lib import logging
 

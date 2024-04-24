@@ -56,7 +56,6 @@ class assistedinstaller:
         return jmespath.search(query, json.loads(response.text))
        
 
-
     def deleteCluster(self, name):
         cluster = self.getCluster(name)
         if cluster:
@@ -81,10 +80,10 @@ class assistedinstaller:
                 "Content-Type": "application/json"
             }
             response = requests.delete(url, headers=headers)
-            self.deleteInfrastructureEnvironment(cluster[0])
             if response.status_code != 204:
                 logging.quitMessage("Recieved an error from API when trying to delete the cluster: {}".format(response.text))
             logging.logMessage(f"Successfully removed cluster '{name}' from the assisted installer")
+            self.deleteInfrastructureEnvironment(cluster[0])
             return True
         else:
             logging.errorMessage("Assisted Installer API did not return a match for the cluster name: {}".format(name))
@@ -98,7 +97,9 @@ class assistedinstaller:
         }
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
-            for infra in json.loads(response.text):
+            logging.prettyPrint(response.text)
+            for infra in reversed(json.loads(response.text)):
+                logging.prettyPrint(infra)
                 deleteurl = f"{self.apiBase}/api/assisted-install/v2/infra-envs/{infra['id']}"
                 response = requests.delete(deleteurl, headers=headers)
                 if response.status_code == 204:
