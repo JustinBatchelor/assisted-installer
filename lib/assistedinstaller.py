@@ -1,4 +1,4 @@
-import requests, json, jmespath
+import requests, json, jmespath, time
 from urllib.parse import urlencode
 from lib import logging
 
@@ -60,21 +60,53 @@ class assistedinstaller:
     def deleteCluster(self, name):
         cluster = self.getCluster(name)
         if cluster:
+            if cluster[0]['status'] == 'preparing-for-installation':
+                time.sleep(300)
+                self.deleteCluster(name)
+                
+            if cluster[0]['status'] == 'installing':
+                url = self.apiBase + "api/assisted-install/v2/clusters/{}/actions/cancel".format(cluster[0]['id'])
+                headers = {
+                    "Authorization": "Bearer {}".format(self.getAccessToken()),
+                    "Content-Type": "application/json"
+                }
+                response = requests.delete(url, headers=headers)
+                if response.status_code != 204:
+                    logging.quitMessage("Failed to cancel the installation")
+                logging.logMessage(f"Successfully canceled cluster installation for cluster: {name}")
+
             url = self.apiBase + "api/assisted-install/v2/clusters/{}".format(cluster[0]['id'])
             headers = {
                 "Authorization": "Bearer {}".format(self.getAccessToken()),
                 "Content-Type": "application/json"
             }
             response = requests.delete(url, headers=headers)
+            self.deleteInfrastructureEnvironment(cluster[0])
             if response.status_code != 204:
                 logging.quitMessage("Recieved an error from API when trying to delete the cluster: {}".format(response.text))
             logging.logMessage(f"Successfully removed cluster '{name}' from the assisted installer")
-            self.deleteInfrastructureEnvironment(cluster[0])
             return True
         else:
             logging.errorMessage("Assisted Installer API did not return a match for the cluster name: {}".format(name))
             return False
     
+    def deleteInfrastructureEnvironments(self):
+        url = f"{self.apiBase}api/assisted-install/v2/infra-envs"
+        headers = {
+            "Authorization": "Bearer {}".format(self.getAccessToken()),
+            "Content-Type": "application/json"
+        }
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            for infra in json.loads(response.text):
+                deleteurl = f"{self.apiBase}/api/assisted-install/v2/infra-envs/{infra['id']}"
+                response = requests.delete(deleteurl, headers=headers)
+                if response.status_code == 204:
+                    logging.logMessage(f"Deleted infra id: {infra['id']}")
+                else:
+                    logging.logMessage(response.text)
+                    logging.quitMessage(f"Unable to delete infra id: {infra['id']}")
+
     def deleteInfrastructureEnvironment(self, cluster):
         url = f"{self.apiBase}api/assisted-install/v2/infra-envs?cluster_id={cluster['id']}"
         headers = {
@@ -84,9 +116,13 @@ class assistedinstaller:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             for infra in json.loads(response.text):
-                deleteurl = f"{url}/{infra['id']}"
-                logging.logMessage(f"Deleting infra id: {infra['id']}")
-                requests.delete(deleteurl, headers=headers)
+                deleteurl = f"{self.apiBase}/api/assisted-install/v2/infra-envs/{infra['id']}"
+                response = requests.delete(deleteurl, headers=headers)
+                if response.status_code == 204:
+                    logging.logMessage(f"Deleted infra id: {infra['id']}")
+                else:
+                    logging.logMessage(response.text)
+                    logging.quitMessage(f"Unable to delete infra id: {infra['id']}")
         
     def registerInfrastructureEnvironment(self, cluster):
         url = f"{self.apiBase}api/assisted-install/v2/infra-envs"
@@ -141,9 +177,26 @@ class assistedinstaller:
 
         infrastructureEnvironment = self.registerInfrastructureEnvironment(json.loads(response.text))
 
-        return [self.getCluster(name)[0], json.loads(infrastructureEnvironment)]
+        return {
+            'cluster': self.getCluster(name)[0],
+            'infra': json.loads(infrastructureEnvironment),
+        }
+    
 
-        
+    def installCluster(self, id):
+        url = f"{self.apiBase}api/assisted-install/v2/clusters/{id}/actions/install"
+        headers = {
+            "Authorization": "Bearer {}".format(self.getAccessToken()),
+            "Content-Type": "application/json"
+        }
+        try:
+            response = requests.post(url, headers=headers)
+            if response.status_code == 202:
+                logging.logMessage(f"Successfully began cluster installation")
+            else:
+                logging.quitMessage(f"API response failed trying to install cluster with error\n{response.text}")
+        except Exception as e:
+            logging.quitMessage(f"API response failed trying to install cluster with error\n{e}")
 
     # def deploySNOCluster(self, name, version, domain):
     #     cluster = self.registerSNOCluster(name, version, domain)

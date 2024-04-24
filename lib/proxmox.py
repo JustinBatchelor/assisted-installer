@@ -1,4 +1,4 @@
-import proxmoxer, os, jmespath, time, requests, paramiko
+import proxmoxer, os, jmespath, time, requests, paramiko, json
 
 from lib import logging
 
@@ -28,12 +28,12 @@ class proxmoxcluster:
             stdin, stdout, stderr = ssh.exec_command(command)
             
             # Read output from the command
-            output = stdout.read()
+            output = stdout.read().decode()
             
             # Optionally, handle errors if any from stderr
-            error = stderr.read()
+            error = stderr.read().decode()
             if error:
-                logging.quitMessage(f"Error: {error.decode()}", )
+                return error
 
             return output
             
@@ -77,6 +77,16 @@ class proxmoxcluster:
         command = f"pvesh create /nodes/{self.node}/storage/local/download-url --content=iso --filename={name}.iso --url={url}"
         logging.logMessage(command)
         return self.sshCommand(self.serviceIP, 22, "root", self.password, command)
+    
+    def deleteISO(self, name):
+        command = f'pvesh get nodes/{self.node}/storage/local/content/iso/{name}.iso'
+        commandresult = self.sshCommand(self.serviceIP, 22, "root", self.password, command)
+        if f'failed to stat' in commandresult:
+            logging.logMessage("ISO file is already removed")
+            return True
+        command = f'pvesh delete nodes/{self.node}/storage/local/content/iso/{name}.iso'
+        self.sshCommand(self.serviceIP, 22, "root", self.password, command)
+        return True
 
 
     def getVMWithID(self, id):
@@ -164,3 +174,62 @@ class proxmoxcluster:
             return True
         else:
             return False
+        
+    def defineVM(self, name):
+        # vmid is required param to create vm using api
+        vmID = 100
+        for vm in self.getVMs():
+            if vm['vmid'] > vmID:
+                vmID = vm['vmid']
+
+        vmID += 1
+        # Define the VM parameters
+        vm_params = {
+            'vmid': vmID,
+            'name': name,
+            'memory': 32500,
+            'cores': 8,
+            'cpu': "x86-64-v2-AES",
+            'ostype': "l26",
+            'boot': 'order=scsi0;ide2;net0',
+            'bios': 'ovmf',
+            'scsihw': "virtio-scsi-single",
+            'ide2': f'local:iso/{name}.iso,media=cdrom',
+            'scsi0': f"local-lvm:{300}",
+            'net0': "virtio,bridge=vmbr0,firewall=1",
+            'machine': "q35",
+            'onboot': 1,
+            'acpi': 1,
+            'agent': 'enabled=1',
+            'hotplug': 'disk,network,usb',
+            'efidisk0': 'local-lvm:4,size=4M,format=raw,efitype=4m',
+            'tags': f'{name}' 
+        }
+        
+        if self.isAuthenticated():
+            try: 
+                vm = self.proxmox.nodes(self.node).qemu.create(**vm_params)
+                logging.logMessage(f"Sucessfully created vm {vm}")
+                return vmID
+            except Exception as e:
+                logging.quitMessage(f"failed to create vm with error:\n{e}")
+
+        else:
+            self.authenticate()
+            self.defineVM(name)
+
+
+    
+    def startVM(self, vmid):
+        if self.isAuthenticated():
+            try: 
+                vm = self.proxmox.nodes(self.node).qemu(vmid).status.post('start')
+                logging.logMessage(vm)
+                return vm
+
+            except Exception as e:
+                logging.quitMessage(f"failed to start vm with error:\n{e}")
+
+        else:
+            self.authenticate()
+            self.startVM(vmid)
